@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>救助資機材学習アプリ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>救助資機材学習</h1>
+  </header>
+
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="zukan">資器材一覧</button>
+    <button class="tab-btn" data-tab="quiz">問題集</button>
+    <button class="tab-btn" data-tab="fav">お気に入り</button>
+  </nav>
+
+  <main>
+    <!-- 資器材一覧タブ -->
+    <section id="tab-zukan" class="tab-content active">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="資器材名で検索...">
+      </div>
+      <div class="category-filter" id="category-filter"></div>
+      <div class="card-grid" id="card-grid"></div>
+    </section>
+
+    <!-- 問題集タブ -->
+    <section id="tab-quiz" class="tab-content">
+      <div class="quiz-controls">
+        <div class="quiz-category-select">
+          <label>カテゴリ</label>
+          <select id="quiz-category-select">
+            <option value="all">すべて</option>
+          </select>
+        </div>
+        <button id="struggle-btn" class="struggle-btn">苦手問題のみ</button>
+      </div>
+      <div id="quiz-area"></div>
+      <div id="quiz-result" class="hidden"></div>
+    </section>
+
+    <!-- お気に入りタブ -->
+    <section id="tab-fav" class="tab-content">
+      <div class="card-grid" id="fav-grid"></div>
+      <p id="fav-empty" class="empty-msg hidden">お気に入りはまだありません。<br>資器材一覧の ☆ から登録できます。</p>
+    </section>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script src="js/quiz.js"></script>
+</body>
+</html>

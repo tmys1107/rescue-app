@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>資機材詳細 - 救助資機材学習アプリ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <a href="index.html" class="back-btn">← 一覧へ</a>
+    <h1 id="detail-name">資器材詳細</h1>
+    <button id="fav-btn" class="fav-btn" aria-label="お気に入り">☆</button>
+  </header>
+
+  <main class="detail-main">
+    <div class="detail-category" id="detail-category"></div>
+
+    <section class="detail-section">
+      <h2>諸元</h2>
+      <table class="spec-table" id="spec-table"></table>
+    </section>
+
+    <section class="detail-section">
+      <h2>使用手順</h2>
+      <ol class="usage-list" id="usage-list"></ol>
+    </section>
+
+    <section class="detail-section">
+      <h2>用途</h2>
+      <p id="purpose-text"></p>
+    </section>
+
+    <section class="detail-section" id="notes-section">
+      <h2>補足・注意事項</h2>
+      <ul class="notes-list" id="notes-list"></ul>
+    </section>
+
+    <section class="detail-section" id="docs-section">
+      <h2>参考資料</h2>
+      <div id="docs-list" class="docs-list"></div>
+    </section>
+
+    <section class="detail-section" id="score-section">
+      <h2>正答率</h2>
+      <div id="score-display" class="score-display"></div>
+    </section>
+
+    <div class="detail-quiz-btn-wrap">
+      <button id="go-quiz-btn" class="primary-btn">この資器材の問題を解く</button>
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script src="js/detail.js"></script>
+</body>
+</html>
