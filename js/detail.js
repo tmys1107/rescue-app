@@ -30,11 +30,12 @@ async function initDetail() {
   // 用途
   document.getElementById('purpose-text').textContent = item.purpose;
 
-  // 補足・注意事項
+  // 補足・注意事項（出典行は除外）
   const notesSection = document.getElementById('notes-section');
   const notesList = document.getElementById('notes-list');
-  if (item.notes && item.notes.length > 0) {
-    item.notes.forEach(note => {
+  const userNotes = (item.notes || []).filter(n => !n.startsWith('出典：'));
+  if (userNotes.length > 0) {
+    userNotes.forEach(note => {
       const li = document.createElement('li');
       li.textContent = note;
       notesList.appendChild(li);

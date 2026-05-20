@@ -5,6 +5,8 @@ async function initQuiz() {
   const struggleBtn = document.getElementById('struggle-btn');
   if (!quizArea) return;
 
+  quizArea.innerHTML = '<p class="loading-msg">読み込み中…</p>';
+
   const urlParams = new URLSearchParams(location.search);
   const urlItemId = urlParams.get('itemId');
   const urlItemName = urlParams.get('name');
@@ -18,10 +20,16 @@ async function initQuiz() {
     document.querySelector('.quiz-controls').style.display = 'none';
     const header = document.createElement('div');
     header.className = 'quiz-item-header';
-    header.innerHTML = `
-      <a href="javascript:history.back()" class="quiz-back-link">← 詳細に戻る</a>
-      <span class="quiz-item-title">${urlItemName} の問題</span>
-    `;
+    const backLink = document.createElement('a');
+    backLink.className = 'quiz-back-link';
+    backLink.href = '#';
+    backLink.textContent = '← 詳細に戻る';
+    backLink.addEventListener('click', (e) => { e.preventDefault(); history.back(); });
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'quiz-item-title';
+    titleSpan.textContent = `${urlItemName} の問題`;
+    header.appendChild(backLink);
+    header.appendChild(titleSpan);
     quizArea.before(header);
   } else {
     categories.forEach(cat => {
@@ -88,7 +96,10 @@ async function initQuiz() {
       const card = document.createElement('div');
       card.className = 'quiz-card';
       card.innerHTML = `
-        <div class="quiz-question">Q${index + 1}. ${q.question}</div>
+        <div class="quiz-question">
+          <span class="quiz-progress">${index + 1} / ${questions.length}</span>
+          Q${index + 1}. ${q.question}
+        </div>
         <div class="quiz-choices"></div>
         <div class="quiz-feedback hidden"></div>
       `;
@@ -131,8 +142,8 @@ async function initQuiz() {
     resultEl.innerHTML = `
       <h2>結果</h2>
       <div class="score">${correct} / ${total}</div>
-      <p style="margin-top:8px;color:#666">${pct}% 正解</p>
-      <button class="primary-btn" style="margin-top:20px" onclick="location.reload()">もう一度</button>
+      <p class="quiz-result-pct">${pct}% 正解</p>
+      <button class="primary-btn quiz-retry-btn" onclick="location.reload()">もう一度</button>
     `;
     resultEl.classList.remove('hidden');
     resultEl.scrollIntoView({ behavior: 'smooth' });

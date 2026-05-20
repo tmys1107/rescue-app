@@ -228,6 +228,7 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.2s;
+  min-height: 48px;
 }
 
 .choice-btn:hover { background: #f9f0f0; border-color: var(--primary); }
@@ -254,6 +255,22 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
 }
 #quiz-result h2 { margin-bottom: 12px; }
 #quiz-result .score { font-size: 2rem; font-weight: bold; color: var(--primary); }
+.quiz-result-pct { margin-top: 8px; color: var(--text-light); }
+.quiz-retry-btn { margin-top: 20px; }
+
+.quiz-progress {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-light);
+  font-weight: normal;
+  margin-bottom: 4px;
+}
+
+.loading-msg {
+  text-align: center;
+  color: var(--text-light);
+  padding: 40px 16px;
+}
 
 .hidden { display: none; }
 
