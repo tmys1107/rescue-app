@@ -124,17 +124,6 @@ async function initDetail() {
     });
   }
 
-  // 出典
-  const sourcesList = document.getElementById('sources-list');
-  if (item.sources && item.sources.length > 0) {
-    showSection('sec-sources');
-    item.sources.forEach(src => {
-      const li = document.createElement('li');
-      li.textContent = src;
-      sourcesList.appendChild(li);
-    });
-  }
-
   // 目次ナビ：存在しないセクションへのリンクは隠す
   document.querySelectorAll('.detail-nav a').forEach(link => {
     const targetId = link.getAttribute('href').slice(1);
