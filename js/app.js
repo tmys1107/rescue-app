@@ -31,6 +31,22 @@ const Storage = {
     return Object.entries(scores)
       .filter(([, s]) => s.total >= 1 && (s.correct / s.total) < 0.6)
       .map(([id]) => id);
+  },
+
+  // ===== 問題ごとの正答率（qid単位） =====
+  getQuestionScores: () => JSON.parse(localStorage.getItem('questionScores') || '{}'),
+  recordQuestionAnswer(qid, isCorrect) {
+    if (!qid) return;
+    const scores = this.getQuestionScores();
+    if (!scores[qid]) scores[qid] = { correct: 0, total: 0 };
+    scores[qid].total++;
+    if (isCorrect) scores[qid].correct++;
+    localStorage.setItem('questionScores', JSON.stringify(scores));
+  },
+  getQuestionScore(qid) {
+    const s = this.getQuestionScores()[qid];
+    if (!s || s.total === 0) return null;
+    return { correct: s.correct, total: s.total, pct: Math.round(s.correct / s.total * 100) };
   }
 };
 

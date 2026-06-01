@@ -75,8 +75,10 @@ async function initQuiz() {
 
     const questions = [];
     filtered.forEach(item => {
-      item.quiz.forEach(q => {
-        questions.push({ ...q, itemId: item.id, itemName: item.name });
+      item.quiz.forEach((q, idx) => {
+        // qid 未設定の問題はitemIdから自動生成（後方互換）
+        const qid = q.qid || `${item.id}-q${idx + 1}`;
+        questions.push({ ...q, qid, itemId: item.id, itemName: item.name });
       });
     });
     shuffle(questions);
@@ -119,12 +121,26 @@ async function initQuiz() {
           btn.classList.add(isCorrect ? 'correct' : 'wrong');
           choicesEl.querySelectorAll('.choice-btn')[q.answer].classList.add('correct');
 
-          feedbackEl.textContent = isCorrect ? '✓ 正解！' : `✗ 不正解。正解：${q.choices[q.answer]}`;
+          // フィードバック組み立て
+          feedbackEl.innerHTML = '';
+          const resultEl = document.createElement('div');
+          resultEl.className = 'quiz-result-line';
+          resultEl.textContent = isCorrect ? '✓ 正解！' : `✗ 不正解。正解：${q.choices[q.answer]}`;
+          feedbackEl.appendChild(resultEl);
+
+          if (q.explanation) {
+            const expEl = document.createElement('div');
+            expEl.className = 'quiz-explanation';
+            expEl.textContent = q.explanation;
+            feedbackEl.appendChild(expEl);
+          }
+
           feedbackEl.className = `quiz-feedback ${isCorrect ? 'correct' : 'wrong'}`;
           feedbackEl.classList.remove('hidden');
 
-          // 正答率を保存
+          // 正答率を保存（資器材単位・問題単位の両方）
           Storage.recordAnswer(q.itemId, isCorrect);
+          Storage.recordQuestionAnswer(q.qid, isCorrect);
 
           if (isCorrect) correct++;
           answered++;

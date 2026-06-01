@@ -351,12 +351,29 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
 .quiz-feedback {
   margin-top: 10px;
   font-size: 0.9rem;
-  font-weight: bold;
-  padding: 6px 10px;
-  border-radius: 4px;
+  padding: 10px 12px;
+  border-radius: 6px;
 }
-.quiz-feedback.correct { color: #1e8449; background: #eafaf1; }
-.quiz-feedback.wrong { color: #c0392b; background: #fdf2f2; }
+.quiz-feedback.correct { background: #eafaf1; border-left: 3px solid #27ae60; }
+.quiz-feedback.wrong { background: #fdf2f2; border-left: 3px solid #e74c3c; }
+
+.quiz-result-line {
+  font-weight: bold;
+  font-size: 0.95rem;
+  margin-bottom: 6px;
+}
+.quiz-feedback.correct .quiz-result-line { color: #1e8449; }
+.quiz-feedback.wrong .quiz-result-line { color: #c0392b; }
+
+.quiz-explanation {
+  font-size: 0.88rem;
+  font-weight: normal;
+  color: #555;
+  line-height: 1.7;
+  padding-top: 6px;
+  border-top: 1px dashed #ccc;
+  margin-top: 4px;
+}
 
 #quiz-result {
   text-align: center;
