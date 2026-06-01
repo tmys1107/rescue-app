@@ -120,7 +120,6 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
 .card {
   background: var(--card-bg);
   border-radius: var(--radius);
-  padding: 14px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   cursor: pointer;
   transition: transform 0.15s, box-shadow 0.15s;
@@ -128,8 +127,24 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
   color: inherit;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   min-height: 80px;
+  overflow: hidden;
+}
+
+.card-thumb {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: #fafafa;
+  display: block;
+}
+
+.card-body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
 }
 
 @media (hover: hover) {
@@ -155,7 +170,104 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
   font-size: 0.8rem;
   padding: 3px 10px;
   border-radius: 20px;
+  margin-bottom: 8px;
+}
+
+.detail-location {
+  color: var(--text-light);
+  font-size: 0.9rem;
   margin-bottom: 16px;
+  padding: 6px 12px;
+  background: #fafafa;
+  border-left: 3px solid var(--primary);
+  border-radius: 0 6px 6px 0;
+  display: block;
+}
+
+.detail-image {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  border-radius: var(--radius);
+  display: block;
+  margin: 0 auto 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background: #fafafa;
+}
+
+/* ===== 諸元のヒント＆⭐強調 ===== */
+.spec-hint {
+  font-size: 0.8rem;
+  color: var(--text-light);
+  margin-bottom: 8px;
+}
+
+.spec-table tr.spec-important { background: #fffbeb; }
+.spec-table tr.spec-important th {
+  color: #92400e;
+  background: #fef3c7;
+}
+.spec-table tr.spec-important td {
+  font-weight: bold;
+  color: #92400e;
+}
+
+/* ===== 目次ナビ ===== */
+.detail-nav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 8px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 50px;
+  background: var(--bg);
+  z-index: 50;
+  -webkit-overflow-scrolling: touch;
+}
+
+.detail-nav a {
+  flex-shrink: 0;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+  text-decoration: none;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: #fff;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.detail-nav a:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* スクロール時のオフセット調整（ナビ分の余白） */
+.detail-section { scroll-margin-top: 110px; }
+
+/* ===== 出典 ===== */
+.sources-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sources-list li {
+  font-size: 0.85rem;
+  color: var(--text-light);
+  padding: 6px 10px;
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.sources-list li::before {
+  content: '📖 ';
+  margin-right: 4px;
 }
 
 .detail-section { margin-bottom: 24px; }
@@ -350,6 +462,41 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
 .struggle-btn.active {
   background: var(--primary);
   color: #fff;
+}
+
+/* ===== 現場のコツ ===== */
+.tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.tip-card {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 14px;
+  border-left: 4px solid #e67e22;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.tip-title {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #e67e22;
+  margin-bottom: 6px;
+}
+
+.tip-body {
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.tip-image {
+  width: 100%;
+  border-radius: var(--radius);
+  display: block;
+  margin-top: 10px;
 }
 
 /* ===== 補足・注意事項 ===== */

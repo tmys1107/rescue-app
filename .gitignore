@@ -1,0 +1,9 @@
+# docx2tips.ps1 の中間出力ファイル
+tools/output/
+
+# 元写真（圧縮前）はGitに含めない
+sources/**/元写真/
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db

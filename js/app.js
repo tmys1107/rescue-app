@@ -119,11 +119,36 @@ function renderCards(data) {
     const a = document.createElement('a');
     a.className = 'card';
     a.href = `detail.html?id=${item.id}`;
-    a.innerHTML = `
-      <div class="card-category">${item.category}</div>
-      <div class="card-name">${item.name}</div>
-      ${Storage.isFav(item.id) ? '<span class="card-fav-mark">★</span>' : ''}
-    `;
+
+    if (item.image) {
+      const img = document.createElement('img');
+      img.className = 'card-thumb';
+      img.src = item.image;
+      img.alt = item.name;
+      img.loading = 'lazy';
+      img.onerror = () => { img.style.display = 'none'; };
+      a.appendChild(img);
+    }
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    const cat = document.createElement('div');
+    cat.className = 'card-category';
+    cat.textContent = item.category;
+    const name = document.createElement('div');
+    name.className = 'card-name';
+    name.textContent = item.name;
+    body.appendChild(cat);
+    body.appendChild(name);
+    a.appendChild(body);
+
+    if (Storage.isFav(item.id)) {
+      const star = document.createElement('span');
+      star.className = 'card-fav-mark';
+      star.textContent = '★';
+      a.appendChild(star);
+    }
+
     grid.appendChild(a);
   });
 }
@@ -144,11 +169,34 @@ function renderFavGrid(data) {
     const a = document.createElement('a');
     a.className = 'card';
     a.href = `detail.html?id=${item.id}`;
-    a.innerHTML = `
-      <div class="card-category">${item.category}</div>
-      <div class="card-name">${item.name}</div>
-      <span class="card-fav-mark">★</span>
-    `;
+
+    if (item.image) {
+      const img = document.createElement('img');
+      img.className = 'card-thumb';
+      img.src = item.image;
+      img.alt = item.name;
+      img.loading = 'lazy';
+      img.onerror = () => { img.style.display = 'none'; };
+      a.appendChild(img);
+    }
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    const cat = document.createElement('div');
+    cat.className = 'card-category';
+    cat.textContent = item.category;
+    const name = document.createElement('div');
+    name.className = 'card-name';
+    name.textContent = item.name;
+    body.appendChild(cat);
+    body.appendChild(name);
+    a.appendChild(body);
+
+    const star = document.createElement('span');
+    star.className = 'card-fav-mark';
+    star.textContent = '★';
+    a.appendChild(star);
+
     grid.appendChild(a);
   });
 }

@@ -15,30 +15,52 @@
 
   <main class="detail-main">
     <div class="detail-category" id="detail-category"></div>
+    <div class="detail-location" id="detail-location"></div>
+    <img id="detail-image" class="detail-image" alt="">
 
-    <section class="detail-section">
+    <nav class="detail-nav" id="detail-nav">
+      <a href="#sec-spec">諸元</a>
+      <a href="#sec-usage">手順</a>
+      <a href="#sec-purpose">用途</a>
+      <a href="#sec-tips">実践</a>
+      <a href="#sec-notes">知見</a>
+      <a href="#sec-quiz-btn">問題</a>
+    </nav>
+
+    <section class="detail-section" id="sec-spec">
       <h2>諸元</h2>
+      <p class="spec-hint" id="spec-hint">⭐ は点検・指導で問われやすい重要項目</p>
       <table class="spec-table" id="spec-table"></table>
     </section>
 
-    <section class="detail-section">
+    <section class="detail-section" id="sec-usage">
       <h2>使用手順</h2>
       <ol class="usage-list" id="usage-list"></ol>
     </section>
 
-    <section class="detail-section">
+    <section class="detail-section" id="sec-purpose">
       <h2>用途</h2>
       <p id="purpose-text"></p>
     </section>
 
-    <section class="detail-section" id="notes-section">
-      <h2>補足・注意事項</h2>
+    <section class="detail-section" id="sec-tips" hidden>
+      <h2>実践ポイント</h2>
+      <div id="tips-list" class="tips-list"></div>
+    </section>
+
+    <section class="detail-section" id="sec-notes" hidden>
+      <h2>実務知見</h2>
       <ul class="notes-list" id="notes-list"></ul>
     </section>
 
-    <section class="detail-section" id="docs-section">
+    <section class="detail-section" id="sec-docs" hidden>
       <h2>参考資料</h2>
       <div id="docs-list" class="docs-list"></div>
+    </section>
+
+    <section class="detail-section" id="sec-sources" hidden>
+      <h2>出典</h2>
+      <ul class="sources-list" id="sources-list"></ul>
     </section>
 
     <section class="detail-section" id="score-section">
@@ -46,7 +68,7 @@
       <div id="score-display" class="score-display"></div>
     </section>
 
-    <div class="detail-quiz-btn-wrap">
+    <div class="detail-quiz-btn-wrap" id="sec-quiz-btn">
       <button id="go-quiz-btn" class="primary-btn">この資器材の問題を解く</button>
     </div>
   </main>

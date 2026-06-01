@@ -11,13 +11,54 @@ async function initDetail() {
   document.getElementById('detail-name').textContent = item.name;
   document.getElementById('detail-category').textContent = item.category;
 
-  // 諸元
+  // セクション表示制御ヘルパー
+  const showSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = false;
+  };
+  const hideSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.hidden = true;
+  };
+
+  // 配置場所
+  const locationEl = document.getElementById('detail-location');
+  if (item.location) {
+    locationEl.textContent = `📍 ${item.location}`;
+  } else {
+    locationEl.style.display = 'none';
+  }
+
+  // メイン画像
+  const imgEl = document.getElementById('detail-image');
+  if (item.image) {
+    imgEl.src = item.image;
+    imgEl.alt = item.name;
+    imgEl.onerror = () => { imgEl.style.display = 'none'; };
+  } else {
+    imgEl.style.display = 'none';
+  }
+
+  // 諸元（重要項目はハイライト）
+  const importantKeys = item.importantSpec || [];
   const table = document.getElementById('spec-table');
   Object.entries(item.spec).forEach(([key, val]) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `<th>${key}</th><td>${val}</td>`;
+    if (importantKeys.includes(key)) {
+      tr.className = 'spec-important';
+    }
+    const th = document.createElement('th');
+    th.textContent = importantKeys.includes(key) ? `⭐ ${key}` : key;
+    const td = document.createElement('td');
+    td.textContent = val;
+    tr.appendChild(th);
+    tr.appendChild(td);
     table.appendChild(tr);
   });
+  // 重要項目がない場合はヒントを隠す
+  if (importantKeys.length === 0) {
+    document.getElementById('spec-hint').style.display = 'none';
+  }
 
   // 使用手順
   const list = document.getElementById('usage-list');
@@ -30,19 +71,78 @@ async function initDetail() {
   // 用途
   document.getElementById('purpose-text').textContent = item.purpose;
 
-  // 補足・注意事項（出典行は除外）
-  const notesSection = document.getElementById('notes-section');
+  // 実践ポイント
+  const tipsList = document.getElementById('tips-list');
+  if (item.tips && item.tips.length > 0) {
+    showSection('sec-tips');
+    item.tips.forEach(tip => {
+      const card = document.createElement('div');
+      card.className = 'tip-card';
+      const titleEl = document.createElement('h3');
+      titleEl.className = 'tip-title';
+      titleEl.textContent = tip.title;
+      const bodyEl = document.createElement('p');
+      bodyEl.className = 'tip-body';
+      bodyEl.textContent = tip.body;
+      card.appendChild(titleEl);
+      card.appendChild(bodyEl);
+      const images = tip.images ?? (tip.image ? [tip.image] : []);
+      images.forEach(src => {
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = tip.title;
+        img.className = 'tip-image';
+        card.appendChild(img);
+      });
+      tipsList.appendChild(card);
+    });
+  }
+
+  // 実務知見（出典行は除外・後方互換）
   const notesList = document.getElementById('notes-list');
   const userNotes = (item.notes || []).filter(n => !n.startsWith('出典：'));
   if (userNotes.length > 0) {
+    showSection('sec-notes');
     userNotes.forEach(note => {
       const li = document.createElement('li');
       li.textContent = note;
       notesList.appendChild(li);
     });
-  } else {
-    notesSection.style.display = 'none';
   }
+
+  // 参考資料（PDF等）
+  const docsList = document.getElementById('docs-list');
+  if (item.docs && item.docs.length > 0) {
+    showSection('sec-docs');
+    item.docs.forEach(doc => {
+      const a = document.createElement('a');
+      a.href = doc.file;
+      a.target = '_blank';
+      a.className = 'doc-link';
+      a.textContent = doc.label;
+      docsList.appendChild(a);
+    });
+  }
+
+  // 出典
+  const sourcesList = document.getElementById('sources-list');
+  if (item.sources && item.sources.length > 0) {
+    showSection('sec-sources');
+    item.sources.forEach(src => {
+      const li = document.createElement('li');
+      li.textContent = src;
+      sourcesList.appendChild(li);
+    });
+  }
+
+  // 目次ナビ：存在しないセクションへのリンクは隠す
+  document.querySelectorAll('.detail-nav a').forEach(link => {
+    const targetId = link.getAttribute('href').slice(1);
+    const target = document.getElementById(targetId);
+    if (!target || target.hidden) {
+      link.style.display = 'none';
+    }
+  });
 
   // お気に入りボタン
   const favBtn = document.getElementById('fav-btn');
@@ -55,22 +155,6 @@ async function initDetail() {
     Storage.toggleFav(item.id);
     updateFavBtn();
   });
-
-  // 参考資料
-  const docsSection = document.getElementById('docs-section');
-  const docsList = document.getElementById('docs-list');
-  if (item.docs && item.docs.length > 0) {
-    item.docs.forEach(doc => {
-      const a = document.createElement('a');
-      a.href = doc.file;
-      a.target = '_blank';
-      a.className = 'doc-link';
-      a.textContent = doc.label;
-      docsList.appendChild(a);
-    });
-  } else {
-    docsSection.style.display = 'none';
-  }
 
   // 正答率
   const scoreSection = document.getElementById('score-section');
