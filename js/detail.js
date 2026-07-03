@@ -39,25 +39,30 @@ async function initDetail() {
     imgEl.style.display = 'none';
   }
 
-  // 諸元（重要項目はハイライト）
+  // 諸元（重要項目はハイライト。操法など諸元がない項目はセクションごと隠す）
   const importantKeys = item.importantSpec || [];
-  const table = document.getElementById('spec-table');
-  Object.entries(item.spec).forEach(([key, val]) => {
-    const tr = document.createElement('tr');
-    if (importantKeys.includes(key)) {
-      tr.className = 'spec-important';
+  const specEntries = Object.entries(item.spec || {});
+  if (specEntries.length === 0) {
+    hideSection('sec-spec');
+  } else {
+    const table = document.getElementById('spec-table');
+    specEntries.forEach(([key, val]) => {
+      const tr = document.createElement('tr');
+      if (importantKeys.includes(key)) {
+        tr.className = 'spec-important';
+      }
+      const th = document.createElement('th');
+      th.textContent = importantKeys.includes(key) ? `⭐ ${key}` : key;
+      const td = document.createElement('td');
+      td.textContent = val;
+      tr.appendChild(th);
+      tr.appendChild(td);
+      table.appendChild(tr);
+    });
+    // 重要項目がない場合はヒントを隠す
+    if (importantKeys.length === 0) {
+      document.getElementById('spec-hint').style.display = 'none';
     }
-    const th = document.createElement('th');
-    th.textContent = importantKeys.includes(key) ? `⭐ ${key}` : key;
-    const td = document.createElement('td');
-    td.textContent = val;
-    tr.appendChild(th);
-    tr.appendChild(td);
-    table.appendChild(tr);
-  });
-  // 重要項目がない場合はヒントを隠す
-  if (importantKeys.length === 0) {
-    document.getElementById('spec-hint').style.display = 'none';
   }
 
   // 使用手順

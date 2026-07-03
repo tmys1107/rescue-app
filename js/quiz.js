@@ -75,7 +75,7 @@ async function initQuiz() {
 
     const questions = [];
     filtered.forEach(item => {
-      item.quiz.forEach((q, idx) => {
+      (item.quiz || []).forEach((q, idx) => {
         // qid 未設定の問題はitemIdから自動生成（後方互換）
         const qid = q.qid || `${item.id}-q${idx + 1}`;
         questions.push({ ...q, qid, itemId: item.id, itemName: item.name });
