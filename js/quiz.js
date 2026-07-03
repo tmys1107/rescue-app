@@ -91,23 +91,47 @@ async function initQuiz() {
       return;
     }
 
-    let answered = 0;
+    // 1問ずつ出題
+    let index = 0;
     let correct = 0;
+    showQuestion();
 
-    questions.forEach((q, index) => {
+    function showQuestion() {
+      quizArea.innerHTML = '';
+      const q = questions[index];
+      const isLast = index === questions.length - 1;
+
       const card = document.createElement('div');
       card.className = 'quiz-card';
-      card.innerHTML = `
-        <div class="quiz-question">
-          <span class="quiz-progress">${index + 1} / ${questions.length}</span>
-          Q${index + 1}. ${q.question}
-        </div>
-        <div class="quiz-choices"></div>
-        <div class="quiz-feedback hidden"></div>
-      `;
 
-      const choicesEl = card.querySelector('.quiz-choices');
-      const feedbackEl = card.querySelector('.quiz-feedback');
+      const head = document.createElement('div');
+      head.className = 'quiz-question';
+      const prog = document.createElement('span');
+      prog.className = 'quiz-progress';
+      prog.textContent = `${index + 1} / ${questions.length}　${q.itemName}`;
+      const qText = document.createElement('div');
+      qText.textContent = `Q${index + 1}. ${q.question}`;
+      head.appendChild(prog);
+      head.appendChild(qText);
+
+      const choicesEl = document.createElement('div');
+      choicesEl.className = 'quiz-choices';
+      const feedbackEl = document.createElement('div');
+      feedbackEl.className = 'quiz-feedback hidden';
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'primary-btn quiz-next-btn hidden';
+      nextBtn.textContent = isLast ? '結果を見る' : '次の問題 →';
+      nextBtn.addEventListener('click', () => {
+        if (isLast) {
+          quizArea.innerHTML = '';
+          showResult(correct, questions.length);
+        } else {
+          index++;
+          showQuestion();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
 
       q.choices.forEach((choice, i) => {
         const btn = document.createElement('button');
@@ -123,10 +147,10 @@ async function initQuiz() {
 
           // フィードバック組み立て
           feedbackEl.innerHTML = '';
-          const resultEl = document.createElement('div');
-          resultEl.className = 'quiz-result-line';
-          resultEl.textContent = isCorrect ? '✓ 正解！' : `✗ 不正解。正解：${q.choices[q.answer]}`;
-          feedbackEl.appendChild(resultEl);
+          const resultLine = document.createElement('div');
+          resultLine.className = 'quiz-result-line';
+          resultLine.textContent = isCorrect ? '✓ 正解！' : `✗ 不正解。正解：${q.choices[q.answer]}`;
+          feedbackEl.appendChild(resultLine);
 
           if (q.explanation) {
             const expEl = document.createElement('div');
@@ -143,14 +167,17 @@ async function initQuiz() {
           Storage.recordQuestionAnswer(q.qid, isCorrect);
 
           if (isCorrect) correct++;
-          answered++;
-          if (answered === questions.length) showResult(correct, questions.length);
+          nextBtn.classList.remove('hidden');
         });
         choicesEl.appendChild(btn);
       });
 
+      card.appendChild(head);
+      card.appendChild(choicesEl);
+      card.appendChild(feedbackEl);
+      card.appendChild(nextBtn);
       quizArea.appendChild(card);
-    });
+    }
   }
 
   function showResult(correct, total) {

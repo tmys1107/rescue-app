@@ -421,6 +421,14 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
   margin-bottom: 4px;
 }
 
+.quiz-next-btn {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+}
+
+.quiz-next-btn.hidden { display: none; }
+
 .loading-msg {
   text-align: center;
   color: var(--text-light);
