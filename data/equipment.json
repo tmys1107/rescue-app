@@ -155,6 +155,7 @@
     "id": "005",
     "category": "登降器具",
     "name": "三連はしご",
+    "image": "images/005.jpg",
     "spec": {
       "質量": "35 kg（要確認）",
       "材質": "チタン製",
@@ -260,6 +261,8 @@
     "id": "006",
     "category": "切断器具",
     "name": "エアソー（タイガーエアソー）",
+    "location": "玉R1 積載",
+    "image": "images/006.jpg",
     "spec": {
       "質量": "2.7 kg",
       "全長": "425 mm",
@@ -382,6 +385,7 @@
     "id": "007",
     "category": "切断器具",
     "name": "エンジンカッター",
+    "image": "images/007.jpg",
     "spec": {
       "質量（STIHL TS500i）": "10.2 kg",
       "ブレード外径（STIHL TS500i）": "300〜350 mm",
