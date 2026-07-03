@@ -140,6 +140,15 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
   display: block;
 }
 
+.card-thumb-placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 2.2rem;
+  font-weight: bold;
+  color: #d5d5d5;
+  background: #f5f5f5;
+}
+
 .card-body {
   padding: 12px 14px;
   display: flex;
@@ -633,4 +642,57 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
 @media (min-width: 600px) {
   .card-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
   header h1 { font-size: 1.3rem; }
+}
+
+/* ===== ダークモード（当直・夜間学習向け） ===== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161618;
+    --card-bg: #232326;
+    --text: #e8e8e8;
+    --text-light: #a0a0a5;
+    --border: #3a3a3e;
+  }
+
+  .tab-nav,
+  .cat-btn,
+  .quiz-card,
+  .choice-btn,
+  .struggle-btn,
+  #quiz-result,
+  .tip-card,
+  .doc-link,
+  .detail-nav a,
+  .quiz-category-select select,
+  .search-box input {
+    background: var(--card-bg);
+    color: var(--text);
+  }
+
+  .choice-btn:hover { background: #2e2e33; }
+
+  .choice-btn.correct { background: #1e3a2a; border-color: #27ae60; color: #7ce0a3; }
+  .choice-btn.wrong { background: #3a2022; border-color: #e74c3c; color: #ff9b9b; }
+  .quiz-feedback.correct { background: #1e3a2a; color: #7ce0a3; }
+  .quiz-feedback.wrong { background: #3a2022; color: #ff9b9b; }
+  .quiz-explanation { color: #b8b8bd; border-top-color: #4a4a4f; }
+
+  .spec-table th { background: #2a2a2e; }
+  .spec-table tr.spec-important { background: #2e2810; }
+  .spec-table tr.spec-important th { background: #383014; color: #f2c94c; }
+  .spec-table tr.spec-important td { color: #f2c94c; }
+
+  .notes-list li { background: #2a2a2e; }
+  .detail-location { background: #2a2a2e; }
+  .doc-link:hover { background: #2e2e33; border-color: var(--primary); }
+
+  /* 写真は白背景素材が多いため白パネルのまま見せる */
+  .card-thumb { background: #fff; }
+  .card-thumb-placeholder { background: #2a2a2e; color: #55555a; }
+
+  .tip-title { color: #f0964a; }
+  .tip-card { border-left-color: #f0964a; }
+
+  .card-progress.learning { color: #f2c94c; }
+  .card-progress.done { color: #7ce0a3; }
 }

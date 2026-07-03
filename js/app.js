@@ -110,9 +110,22 @@ async function initIndex() {
 
   function updateFilter(data, cat, query) {
     let filtered = cat === 'all' ? data : data.filter(d => d.category === cat);
-    if (query) filtered = filtered.filter(d => d.name.includes(query));
+    if (query) filtered = filtered.filter(d => matchesQuery(d, query));
     renderCards(filtered);
   }
+}
+
+// 名前・カテゴリ・用途・実務知見・諸元を横断検索
+function matchesQuery(d, query) {
+  const q = query.toLowerCase();
+  const targets = [
+    d.name,
+    d.category,
+    d.purpose || '',
+    ...(d.notes || []),
+    ...Object.entries(d.spec || {}).flat()
+  ];
+  return targets.some(t => String(t).toLowerCase().includes(q));
 }
 
 function createCatBtn(label, cat, isActive, onClick) {
@@ -140,14 +153,23 @@ function buildCard(item) {
   a.className = 'card';
   a.href = `detail.html?id=${item.id}`;
 
+  const makePlaceholder = () => {
+    const ph = document.createElement('div');
+    ph.className = 'card-thumb card-thumb-placeholder';
+    ph.textContent = item.category.charAt(0);
+    return ph;
+  };
+
   if (item.image) {
     const img = document.createElement('img');
     img.className = 'card-thumb';
     img.src = item.image;
     img.alt = item.name;
     img.loading = 'lazy';
-    img.onerror = () => { img.style.display = 'none'; };
+    img.onerror = () => { img.replaceWith(makePlaceholder()); };
     a.appendChild(img);
+  } else {
+    a.appendChild(makePlaceholder());
   }
 
   const body = document.createElement('div');
