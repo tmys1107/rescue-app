@@ -148,6 +148,31 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
   flex: 1;
 }
 
+/* ===== 習得状況バッジ ===== */
+.card-progress {
+  margin-top: auto;
+  padding-top: 6px;
+  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-light);
+}
+
+.card-progress::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.card-progress.none::before { background: #ccc; }
+.card-progress.learning { color: #b7791f; font-weight: bold; }
+.card-progress.learning::before { background: #f2c94c; }
+.card-progress.done { color: #1e8449; font-weight: bold; }
+.card-progress.done::before { background: #27ae60; }
+
 @media (hover: hover) {
   .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
 }

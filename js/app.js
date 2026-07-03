@@ -131,42 +131,62 @@ function renderCards(data) {
     grid.innerHTML = '<p class="empty-msg">該当する資器材はありません。</p>';
     return;
   }
-  data.forEach(item => {
-    const a = document.createElement('a');
-    a.className = 'card';
-    a.href = `detail.html?id=${item.id}`;
+  data.forEach(item => grid.appendChild(buildCard(item)));
+}
 
-    if (item.image) {
-      const img = document.createElement('img');
-      img.className = 'card-thumb';
-      img.src = item.image;
-      img.alt = item.name;
-      img.loading = 'lazy';
-      img.onerror = () => { img.style.display = 'none'; };
-      a.appendChild(img);
-    }
+// カード1枚を生成（一覧・お気に入り共通）
+function buildCard(item) {
+  const a = document.createElement('a');
+  a.className = 'card';
+  a.href = `detail.html?id=${item.id}`;
 
-    const body = document.createElement('div');
-    body.className = 'card-body';
-    const cat = document.createElement('div');
-    cat.className = 'card-category';
-    cat.textContent = item.category;
-    const name = document.createElement('div');
-    name.className = 'card-name';
-    name.textContent = item.name;
-    body.appendChild(cat);
-    body.appendChild(name);
-    a.appendChild(body);
+  if (item.image) {
+    const img = document.createElement('img');
+    img.className = 'card-thumb';
+    img.src = item.image;
+    img.alt = item.name;
+    img.loading = 'lazy';
+    img.onerror = () => { img.style.display = 'none'; };
+    a.appendChild(img);
+  }
 
-    if (Storage.isFav(item.id)) {
-      const star = document.createElement('span');
-      star.className = 'card-fav-mark';
-      star.textContent = '★';
-      a.appendChild(star);
-    }
+  const body = document.createElement('div');
+  body.className = 'card-body';
+  const cat = document.createElement('div');
+  cat.className = 'card-category';
+  cat.textContent = item.category;
+  const name = document.createElement('div');
+  name.className = 'card-name';
+  name.textContent = item.name;
+  body.appendChild(cat);
+  body.appendChild(name);
 
-    grid.appendChild(a);
-  });
+  // 習得状況バッジ（習得ライン：正答率80%）
+  const score = Storage.getScore(item.id);
+  const progress = document.createElement('div');
+  progress.className = 'card-progress';
+  if (!score) {
+    progress.classList.add('none');
+    progress.textContent = '未学習';
+  } else if (score.pct >= 80) {
+    progress.classList.add('done');
+    progress.textContent = `習得 ${score.pct}%`;
+  } else {
+    progress.classList.add('learning');
+    progress.textContent = `学習中 ${score.pct}%`;
+  }
+  body.appendChild(progress);
+
+  a.appendChild(body);
+
+  if (Storage.isFav(item.id)) {
+    const star = document.createElement('span');
+    star.className = 'card-fav-mark';
+    star.textContent = '★';
+    a.appendChild(star);
+  }
+
+  return a;
 }
 
 function renderFavGrid(data) {
@@ -181,40 +201,7 @@ function renderFavGrid(data) {
     return;
   }
   emptyMsg.classList.add('hidden');
-  favItems.forEach(item => {
-    const a = document.createElement('a');
-    a.className = 'card';
-    a.href = `detail.html?id=${item.id}`;
-
-    if (item.image) {
-      const img = document.createElement('img');
-      img.className = 'card-thumb';
-      img.src = item.image;
-      img.alt = item.name;
-      img.loading = 'lazy';
-      img.onerror = () => { img.style.display = 'none'; };
-      a.appendChild(img);
-    }
-
-    const body = document.createElement('div');
-    body.className = 'card-body';
-    const cat = document.createElement('div');
-    cat.className = 'card-category';
-    cat.textContent = item.category;
-    const name = document.createElement('div');
-    name.className = 'card-name';
-    name.textContent = item.name;
-    body.appendChild(cat);
-    body.appendChild(name);
-    a.appendChild(body);
-
-    const star = document.createElement('span');
-    star.className = 'card-fav-mark';
-    star.textContent = '★';
-    a.appendChild(star);
-
-    grid.appendChild(a);
-  });
+  favItems.forEach(item => grid.appendChild(buildCard(item)));
 }
 
 // ===== タブ切り替え =====
