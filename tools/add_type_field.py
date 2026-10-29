@@ -26,7 +26,7 @@ PATH = os.path.join(HERE, "data", "equipment.json")
 
 OPS_CATEGORY = "操法・救助方法"
 TYPE_EQ = "資器材"
-TYPE_OPS = "操法"
+TYPE_OPS = "操法・訓練"
 
 CAT_LINE = re.compile(r'^(\s*)"category"\s*:\s*"([^"]+)"')
 

@@ -198,7 +198,7 @@ function getCategories(data) {
 }
 
 const TYPE_EQ = '資器材';
-const TYPE_OPS = '操法';
+const TYPE_OPS = '操法・訓練';
 
 // 種別（資器材／操法）で絞る。type 未設定の古いデータは資器材として扱う
 function byType(data, type) {
@@ -222,7 +222,7 @@ async function initIndex() {
     gridId: 'ops-card-grid',
     filterId: 'ops-category-filter',
     searchId: 'ops-search-input',
-    emptyMsg: '該当する操法はありません。'
+    emptyMsg: '該当する操法・訓練はありません。'
   });
 
   // お気に入りは種別をまたぐ（表示時に毎回再描画）

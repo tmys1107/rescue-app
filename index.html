@@ -13,7 +13,7 @@
 
   <nav class="tab-nav">
     <button class="tab-btn active" data-tab="zukan">資器材</button>
-    <button class="tab-btn" data-tab="ops">操法</button>
+    <button class="tab-btn" data-tab="ops">操法・訓練</button>
     <button class="tab-btn" data-tab="quiz">問題集</button>
     <button class="tab-btn" data-tab="fav">お気に入り</button>
   </nav>
@@ -30,10 +30,10 @@
       </div>
     </section>
 
-    <!-- 操法・救助方法タブ -->
+    <!-- 操法・訓練タブ（操法のほか、車両破壊など操法以外の訓練も入る） -->
     <section id="tab-ops" class="tab-content">
       <div class="search-box">
-        <input type="text" id="ops-search-input" placeholder="操法名・手順で検索...">
+        <input type="text" id="ops-search-input" placeholder="操法・訓練名、手順で検索...">
       </div>
       <div class="category-filter" id="ops-category-filter"></div>
       <div class="card-grid" id="ops-card-grid">
@@ -49,7 +49,7 @@
           <select id="quiz-type-select">
             <option value="all">すべて</option>
             <option value="資器材">資器材</option>
-            <option value="操法">操法</option>
+            <option value="操法・訓練">操法・訓練</option>
           </select>
         </div>
         <div class="quiz-category-select">

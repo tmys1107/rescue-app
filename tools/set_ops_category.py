@@ -81,7 +81,7 @@ def main():
     print("%d件を付け替え / JSON再読込 OK（%d件）\n" % (len(changed), len(items)))
 
     import collections
-    for t in ("資器材", "操法"):
+    for t in ("資器材", "操法・訓練"):
         grp = collections.Counter(it["category"] for it in items if it.get("type") == t)
         print("【%s】%d件" % (t, sum(grp.values())))
         for k, v in grp.most_common():
