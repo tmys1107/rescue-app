@@ -1,7 +1,45 @@
+// ===== 復習間隔（忘却曲線に合わせて延ばす） =====
+// 連続正解が伸びるほど次に出るまでを長くする。間違えたら翌日に戻す。
+const REVIEW_DAYS = [1, 3, 7, 14, 30, 60];
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function nextDueAt(streak, now) {
+  const days = REVIEW_DAYS[Math.min(streak, REVIEW_DAYS.length - 1)];
+  return now + days * DAY_MS;
+}
+
+// 習得ライン：全問に1回以上答えていて、かつ正答率80%以上
+const MASTERY_ACCURACY = 0.8;
+
 // ===== LocalStorage ユーティリティ =====
+// プライベートブラウズ・容量超過・保存拒否でも画面が止まらないよう、
+// 読み書きは必ず例外を飲み込む（保存できなくても出題は続けられる）。
+function lsRead(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const val = JSON.parse(raw);
+    if (val === null || typeof val !== 'object') return fallback;
+    return val;
+  } catch (e) {
+    console.warn(`${key} を読めなかったので初期値を使います`, e);
+    return fallback;
+  }
+}
+
+function lsWrite(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch (e) {
+    console.warn(`${key} を保存できませんでした`, e);
+    return false;
+  }
+}
+
 const Storage = {
-  getFavs: () => JSON.parse(localStorage.getItem('favs') || '[]'),
-  setFavs: (arr) => localStorage.setItem('favs', JSON.stringify(arr)),
+  getFavs: () => lsRead('favs', []),
+  setFavs: (arr) => lsWrite('favs', arr),
   toggleFav(id) {
     const favs = this.getFavs();
     const idx = favs.indexOf(id);
@@ -11,44 +49,139 @@ const Storage = {
   },
   isFav: (id) => Storage.getFavs().includes(id),
 
-  // 正答率: { [itemId]: { correct: N, total: N } }
-  getScores: () => JSON.parse(localStorage.getItem('scores') || '{}'),
+  // 資器材単位の累計: { [itemId]: { correct, total } }
+  // 習得判定には使わない（1問だけ正解でも100%になるため）。
+  // qid単位の記録が無かった頃のデータを残すために書き続けている。
+  getScores: () => lsRead('scores', {}),
   recordAnswer(itemId, isCorrect) {
     const scores = this.getScores();
     if (!scores[itemId]) scores[itemId] = { correct: 0, total: 0 };
     scores[itemId].total++;
     if (isCorrect) scores[itemId].correct++;
-    localStorage.setItem('scores', JSON.stringify(scores));
+    lsWrite('scores', scores);
   },
   getScore(itemId) {
     const s = this.getScores()[itemId];
     if (!s || s.total === 0) return null;
     return { correct: s.correct, total: s.total, pct: Math.round(s.correct / s.total * 100) };
   },
-  // 正答率が低い問題IDを返す（total>=1 かつ pct<60）
-  getWeakItemIds() {
-    const scores = this.getScores();
-    return Object.entries(scores)
-      .filter(([, s]) => s.total >= 1 && (s.correct / s.total) < 0.6)
-      .map(([id]) => id);
-  },
 
-  // ===== 問題ごとの正答率（qid単位） =====
-  getQuestionScores: () => JSON.parse(localStorage.getItem('questionScores') || '{}'),
+  // ===== 問題ごとの記録（qid単位） =====
+  // { [qid]: { correct, total, streak, last, due } }
+  getQuestionScores: () => lsRead('questionScores', {}),
   recordQuestionAnswer(qid, isCorrect) {
     if (!qid) return;
     const scores = this.getQuestionScores();
-    if (!scores[qid]) scores[qid] = { correct: 0, total: 0 };
-    scores[qid].total++;
-    if (isCorrect) scores[qid].correct++;
-    localStorage.setItem('questionScores', JSON.stringify(scores));
+    const s = scores[qid] || { correct: 0, total: 0, streak: 0 };
+    s.total++;
+    if (isCorrect) {
+      s.correct++;
+      s.streak = (s.streak || 0) + 1;
+    } else {
+      s.streak = 0;
+    }
+    const now = Date.now();
+    s.last = now;
+    s.due = nextDueAt(s.streak, now);
+    scores[qid] = s;
+    lsWrite('questionScores', scores);
   },
-  getQuestionScore(qid) {
-    const s = this.getQuestionScores()[qid];
-    if (!s || s.total === 0) return null;
-    return { correct: s.correct, total: s.total, pct: Math.round(s.correct / s.total * 100) };
-  }
 };
+
+// 問題の一意キー。JSONにqidがあればそれを使う（並べ替えても履歴が追従する）
+function qidOf(item, q, idx) {
+  return q.qid || `${item.id}-q${idx + 1}`;
+}
+
+// 資器材・操法1件の習得状況。
+// 「網羅率（何問に答えたか）」と「正答率」の両方を見るのが肝。
+// 累計正答率だけだと、7問中1問正解しただけで習得100%になってしまう。
+function getMastery(item, now = Date.now()) {
+  const quiz = item.quiz || [];
+  if (quiz.length === 0) return null;
+
+  const all = Storage.getQuestionScores();
+  let answered = 0, correct = 0, total = 0, due = 0;
+
+  quiz.forEach((q, i) => {
+    const s = all[qidOf(item, q, i)];
+    if (!s || !s.total) return;
+    answered++;
+    correct += s.correct;
+    total += s.total;
+    if (s.due && s.due <= now) due++;
+  });
+
+  if (answered === 0) {
+    // qid単位の記録が無い場合だけ、旧来の資器材単位の記録で代用する
+    const legacy = Storage.getScore(item.id);
+    if (!legacy) return null;
+    return {
+      questions: quiz.length, answered: 0, due: 0, legacy: true,
+      coveragePct: 0, accuracy: legacy.correct / legacy.total,
+      pct: legacy.pct, mastered: false
+    };
+  }
+
+  const accuracy = correct / total;
+  return {
+    questions: quiz.length,
+    answered,
+    due,
+    legacy: false,
+    coveragePct: Math.round(answered / quiz.length * 100),
+    accuracy,
+    pct: Math.round(accuracy * 100),
+    // 四捨五入前の値で判定する（79.5%が80%に化けて習得にならないように）
+    mastered: answered === quiz.length && accuracy >= MASTERY_ACCURACY
+  };
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// 苦手の判定：1回以上答えていて正答率60%未満
+const WEAK_ACCURACY = 0.6;
+
+function isWeakQid(qid) {
+  const s = Storage.getQuestionScores()[qid];
+  return !!s && s.total >= 1 && (s.correct / s.total) < WEAK_ACCURACY;
+}
+
+// 出題順を決める。期限が来たもの → 未回答 → それ以外、の順。
+// 期限を過ぎて長いものほど先に出す。同じ段のなかはシャッフル。
+function sortForStudy(questions, now = Date.now()) {
+  const all = Storage.getQuestionScores();
+  const due = [], fresh = [], rest = [];
+
+  questions.forEach(q => {
+    const s = all[q.qid];
+    if (!s || !s.total) fresh.push(q);
+    else if (s.due && s.due <= now) due.push({ q, over: now - s.due });
+    else rest.push(q);
+  });
+
+  due.sort((a, b) => b.over - a.over);
+  shuffle(fresh);
+  shuffle(rest);
+  return [...due.map(d => d.q), ...fresh, ...rest];
+}
+
+// カードや詳細に出すバッジの文言と色
+function masteryBadge(m) {
+  if (!m) return { cls: 'none', text: '未学習' };
+  if (m.legacy) return { cls: 'learning', text: `学習中 ${m.pct}%` };
+  if (m.answered < m.questions) {
+    return { cls: 'learning', text: `学習中 ${m.answered}/${m.questions}問` };
+  }
+  if (m.due > 0) return { cls: 'due', text: `要復習 ${m.pct}%` };
+  if (m.mastered) return { cls: 'done', text: `習得 ${m.pct}%` };
+  return { cls: 'learning', text: `あと一歩 ${m.pct}%` };
+}
 
 // ===== データ取得 =====
 async function loadEquipment() {
@@ -56,72 +189,100 @@ async function loadEquipment() {
   return res.json();
 }
 
+// カテゴリは件数の多い順に並べる。
+// 登録順だと1件しかないカテゴリが先頭に来て、絞り込みが使いにくい。
 function getCategories(data) {
-  return [...new Set(data.map(d => d.category))];
+  const count = new Map();
+  data.forEach(d => count.set(d.category, (count.get(d.category) || 0) + 1));
+  return [...count.keys()].sort((a, b) => count.get(b) - count.get(a));
+}
+
+const TYPE_EQ = '資器材';
+const TYPE_OPS = '操法';
+
+// 種別（資器材／操法）で絞る。type 未設定の古いデータは資器材として扱う
+function byType(data, type) {
+  return data.filter(d => (d.type || TYPE_EQ) === type);
 }
 
 // ===== index.html 初期化 =====
 async function initIndex() {
   const data = await loadEquipment();
-  const categories = getCategories(data);
-  let activeCategory = 'all';
 
-  // カテゴリフィルター
-  const filterEl = document.getElementById('category-filter');
-  const allBtn = createCatBtn('すべて', 'all', true, () => {
-    activeCategory = 'all';
-    updateFilter(data, activeCategory, searchInput.value);
-    setActiveCatBtn('all');
+  // 資器材タブと操法タブは作りが同じなので、同じ関数で組む
+  initListTab({
+    data: byType(data, TYPE_EQ),
+    gridId: 'card-grid',
+    filterId: 'category-filter',
+    searchId: 'search-input',
+    emptyMsg: '該当する資器材はありません。'
   });
-  filterEl.appendChild(allBtn);
-
-  categories.forEach(cat => {
-    const btn = createCatBtn(cat, cat, false, () => {
-      activeCategory = cat;
-      updateFilter(data, activeCategory, searchInput.value);
-      setActiveCatBtn(cat);
-    });
-    filterEl.appendChild(btn);
+  initListTab({
+    data: byType(data, TYPE_OPS),
+    gridId: 'ops-card-grid',
+    filterId: 'ops-category-filter',
+    searchId: 'ops-search-input',
+    emptyMsg: '該当する操法はありません。'
   });
 
-  // 検索
-  const searchInput = document.getElementById('search-input');
-  searchInput.addEventListener('input', () => {
-    updateFilter(data, activeCategory, searchInput.value);
-  });
-
-  // お気に入りタブ（表示時に毎回再描画）
+  // お気に入りは種別をまたぐ（表示時に毎回再描画）
   renderFavGrid(data);
   document.querySelector('[data-tab="fav"]').addEventListener('click', () => renderFavGrid(data));
 
-  // 初期表示
-  renderCards(data);
-
-  // URLパラメータで問題集タブを開く
-  if (new URLSearchParams(location.search).get('quiz') === '1') {
-    document.querySelector('[data-tab="quiz"]').click();
-  }
-
-  function setActiveCatBtn(cat) {
-    filterEl.querySelectorAll('.cat-btn').forEach(b => {
-      b.classList.toggle('active', b.dataset.cat === cat);
-    });
-  }
-
-  function updateFilter(data, cat, query) {
-    let filtered = cat === 'all' ? data : data.filter(d => d.category === cat);
-    if (query) filtered = filtered.filter(d => matchesQuery(d, query));
-    renderCards(filtered);
+  // URLパラメータでタブを開く（?tab=ops など。?quiz=1 は従来互換）
+  const params = new URLSearchParams(location.search);
+  const openTab = params.get('quiz') === '1' ? 'quiz' : params.get('tab');
+  if (openTab) {
+    const btn = document.querySelector(`[data-tab="${CSS.escape(openTab)}"]`);
+    if (btn) btn.click();
   }
 }
 
-// 名前・カテゴリ・用途・実務知見・諸元を横断検索
+// 一覧タブ（検索＋カテゴリフィルター＋カード）を1つ組み立てる
+function initListTab({ data, gridId, filterId, searchId, emptyMsg }) {
+  const filterEl = document.getElementById(filterId);
+  const searchInput = document.getElementById(searchId);
+  if (!filterEl || !searchInput) return;
+
+  const categories = getCategories(data);
+  let activeCategory = 'all';
+
+  const update = () => {
+    let filtered = activeCategory === 'all'
+      ? data
+      : data.filter(d => d.category === activeCategory);
+    if (searchInput.value) filtered = filtered.filter(d => matchesQuery(d, searchInput.value));
+    renderCards(filtered, gridId, emptyMsg);
+  };
+
+  const select = (cat) => {
+    activeCategory = cat;
+    filterEl.querySelectorAll('.cat-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.cat === cat);
+    });
+    update();
+  };
+
+  filterEl.appendChild(createCatBtn('すべて', 'all', true, () => select('all')));
+  categories.forEach(cat => {
+    filterEl.appendChild(createCatBtn(cat, cat, false, () => select(cat)));
+  });
+
+  // カテゴリが1つだけならフィルターは意味がないので出さない
+  if (categories.length <= 1) filterEl.style.display = 'none';
+
+  searchInput.addEventListener('input', update);
+  update();
+}
+
+// 名前・カテゴリ・用途・手順・実務知見・諸元を横断検索
 function matchesQuery(d, query) {
   const q = query.toLowerCase();
   const targets = [
     d.name,
     d.category,
     d.purpose || '',
+    ...(d.usage || []),
     ...(d.notes || []),
     ...Object.entries(d.spec || {}).flat()
   ];
@@ -137,11 +298,15 @@ function createCatBtn(label, cat, isActive, onClick) {
   return btn;
 }
 
-function renderCards(data) {
-  const grid = document.getElementById('card-grid');
-  grid.innerHTML = '';
+function renderCards(data, gridId = 'card-grid', emptyMsg = '該当する資器材はありません。') {
+  const grid = document.getElementById(gridId);
+  if (!grid) return;
+  grid.textContent = '';
   if (data.length === 0) {
-    grid.innerHTML = '<p class="empty-msg">該当する資器材はありません。</p>';
+    const p = document.createElement('p');
+    p.className = 'empty-msg';
+    p.textContent = emptyMsg;
+    grid.appendChild(p);
     return;
   }
   data.forEach(item => grid.appendChild(buildCard(item)));
@@ -168,8 +333,11 @@ function buildCard(item) {
     img.loading = 'lazy';
     img.onerror = () => { img.replaceWith(makePlaceholder()); };
     a.appendChild(img);
-  } else {
+  } else if (item.type !== TYPE_OPS) {
+    // 操法は撮るべき「物」が無いので、空の枠は出さずカードを詰める
     a.appendChild(makePlaceholder());
+  } else {
+    a.classList.add('card-noimage');
   }
 
   const body = document.createElement('div');
@@ -183,20 +351,11 @@ function buildCard(item) {
   body.appendChild(cat);
   body.appendChild(name);
 
-  // 習得状況バッジ（習得ライン：正答率80%）
-  const score = Storage.getScore(item.id);
+  // 習得状況バッジ（全問に答えて正答率80%以上で「習得」）
+  const badge = masteryBadge(getMastery(item));
   const progress = document.createElement('div');
-  progress.className = 'card-progress';
-  if (!score) {
-    progress.classList.add('none');
-    progress.textContent = '未学習';
-  } else if (score.pct >= 80) {
-    progress.classList.add('done');
-    progress.textContent = `習得 ${score.pct}%`;
-  } else {
-    progress.classList.add('learning');
-    progress.textContent = `学習中 ${score.pct}%`;
-  }
+  progress.className = `card-progress ${badge.cls}`;
+  progress.textContent = badge.text;
   body.appendChild(progress);
 
   a.appendChild(body);

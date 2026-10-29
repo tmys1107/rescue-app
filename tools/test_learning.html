@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>学習ロジックの検証</title>
+</head>
+<body>
+<pre id="out">実行中…</pre>
+<script src="../js/app.js"></script>
+<script>
+const DAY = 24 * 60 * 60 * 1000;
+const lines = [];
+let ng = 0;
+function check(name, got, want) {
+  const ok = JSON.stringify(got) === JSON.stringify(want);
+  if (!ok) ng++;
+  lines.push(`${ok ? 'OK  ' : 'NG  '}${name}\n      got=${JSON.stringify(got)} want=${JSON.stringify(want)}`);
+}
+
+// 7問ある資器材を模す
+const item = { id: 'T01', quiz: Array.from({ length: 7 }, (_, i) => ({ qid: `T01-q${i + 1}` })) };
+const now = Date.now();
+const seed = (obj) => localStorage.setItem('questionScores', JSON.stringify(obj));
+
+// --- ② 習得判定 ---
+localStorage.clear();
+check('未回答は null', getMastery(item), null);
+
+// 旧挙動では 1/1 = 100% で「習得」になっていたケース
+seed({ 'T01-q1': { correct: 1, total: 1, streak: 1, last: now, due: now + 3 * DAY } });
+let m = getMastery(item, now);
+check('1問だけ正解：習得にしない', m.mastered, false);
+check('1問だけ正解：網羅 1/7', [m.answered, m.questions], [1, 7]);
+check('1問だけ正解：バッジ', masteryBadge(m).text, '学習中 1/7問');
+
+// 全問回答・正答率 35/44 = 79.54…%（四捨五入すると80%になる境界）
+const s = {};
+item.quiz.forEach((q, i) => {
+  s[q.qid] = (i < 6)
+    ? { correct: 5, total: 6, streak: 1, last: now, due: now + 3 * DAY }   // 30/36
+    : { correct: 5, total: 8, streak: 1, last: now, due: now + 3 * DAY };  //  5/8
+});
+seed(s);
+m = getMastery(item, now);
+check('全問回答 35/44 の表示は80%', m.pct, 80);
+check('四捨五入前（79.5%）で判定するので習得にしない', m.mastered, false);
+check('バッジは「あと一歩」', masteryBadge(m).text, 'あと一歩 80%');
+
+// 1問でも未回答なら、正答率が高くても習得にしない
+const s1 = {};
+item.quiz.slice(0, 6).forEach(q => { s1[q.qid] = { correct: 3, total: 3, streak: 3, last: now, due: now + 14 * DAY }; });
+seed(s1);
+m = getMastery(item, now);
+check('6/7問しか答えていない：習得にしない', m.mastered, false);
+check('バッジは網羅率を出す', masteryBadge(m).text, '学習中 6/7問');
+
+// 全問回答・正答率 100%
+const s2 = {};
+item.quiz.forEach(q => { s2[q.qid] = { correct: 2, total: 2, streak: 2, last: now, due: now + 7 * DAY }; });
+seed(s2);
+m = getMastery(item, now);
+check('全問 100%：習得', m.mastered, true);
+check('バッジ', masteryBadge(m).text, '習得 100%');
+
+// 期限が来たら「要復習」に戻る
+const s3 = JSON.parse(JSON.stringify(s2));
+s3['T01-q3'].due = now - DAY;
+seed(s3);
+m = getMastery(item, now);
+check('期限切れ1問：due=1', m.due, 1);
+check('習得していても要復習に戻す', masteryBadge(m).cls, 'due');
+
+// --- ③ 苦手は問題単位 ---
+seed({
+  'T01-q1': { correct: 0, total: 2, streak: 0, last: now, due: now + DAY },  // 0%  → 苦手
+  'T01-q2': { correct: 3, total: 4, streak: 1, last: now, due: now + 3 * DAY } // 75% → 苦手でない
+});
+check('0/2 は苦手', isWeakQid('T01-q1'), true);
+check('3/4 は苦手でない', isWeakQid('T01-q2'), false);
+check('未回答は苦手でない', isWeakQid('T01-q9'), false);
+
+// --- ④ 復習間隔 ---
+check('間違えた直後は翌日', Math.round((nextDueAt(0, 0)) / DAY), 1);
+check('連続1回で3日', Math.round(nextDueAt(1, 0) / DAY), 3);
+check('連続2回で7日', Math.round(nextDueAt(2, 0) / DAY), 7);
+check('上限は60日', Math.round(nextDueAt(99, 0) / DAY), 60);
+
+localStorage.clear();
+Storage.recordQuestionAnswer('X1', false);
+let rec = Storage.getQuestionScores()['X1'];
+check('誤答で streak=0', rec.streak, 0);
+check('誤答で last が入る', typeof rec.last, 'number');
+Storage.recordQuestionAnswer('X1', true);
+rec = Storage.getQuestionScores()['X1'];
+check('正解で streak=1', rec.streak, 1);
+check('due は約3日後', Math.round((rec.due - rec.last) / DAY), 3);
+
+// --- ⑤ 出題順 ---
+seed({
+  A: { correct: 1, total: 1, streak: 1, last: now, due: now - 10 * DAY }, // 期限10日超過
+  B: { correct: 1, total: 1, streak: 1, last: now, due: now - 1 * DAY },  // 期限1日超過
+  D: { correct: 1, total: 1, streak: 1, last: now, due: now + 10 * DAY }  // まだ先
+});
+const qs = [{ qid: 'D' }, { qid: 'B' }, { qid: 'C' }, { qid: 'A' }]; // C は未回答
+const sorted = sortForStudy(qs, now).map(q => q.qid);
+check('期限超過が長い順 → 未回答 → 残り', sorted, ['A', 'B', 'C', 'D']);
+
+// --- 例外処理 ---
+localStorage.setItem('questionScores', '{壊れたJSON');
+check('壊れたJSONでも落ちない', Storage.getQuestionScores(), {});
+localStorage.setItem('favs', 'null');
+check('null でも配列を返す', Storage.getFavs(), []);
+
+localStorage.clear();
+document.getElementById('out').textContent =
+  lines.join('\n') + `\n\n==== ${ng === 0 ? '全て通過' : 'NG ' + ng + '件'} ====`;
+</script>
+</body>
+</html>

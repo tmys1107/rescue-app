@@ -7,7 +7,7 @@ async function initDetail() {
   const item = data.find(d => d.id === id);
   if (!item) { location.href = 'index.html'; return; }
 
-  document.title = `${item.name} - 救助資器材学習アプリ`;
+  document.title = `${item.name} - 救助学習アプリ`;
   document.getElementById('detail-name').textContent = item.name;
   document.getElementById('detail-category').textContent = item.category;
 
@@ -150,17 +150,36 @@ async function initDetail() {
     updateFavBtn();
   });
 
-  // 正答率
+  // 習得状況（網羅率と正答率を分けて出す）
   const scoreSection = document.getElementById('score-section');
   const scoreDisplay = document.getElementById('score-display');
-  const score = Storage.getScore(item.id);
-  if (score) {
-    scoreDisplay.innerHTML = `
-      <div class="score-bar-wrap">
-        <div class="score-bar" style="width:${score.pct}%"></div>
-      </div>
-      <span class="score-label">${score.correct}/${score.total}問 (${score.pct}%)</span>
-    `;
+  const mastery = getMastery(item);
+  if (mastery) {
+    const badge = masteryBadge(mastery);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'score-bar-wrap';
+    const bar = document.createElement('div');
+    bar.className = `score-bar ${badge.cls}`;
+    bar.style.width = `${Math.max(0, Math.min(100, mastery.pct))}%`;
+    wrap.appendChild(bar);
+
+    const label = document.createElement('span');
+    label.className = 'score-label';
+    label.textContent = mastery.legacy
+      ? `${badge.text}（問題ごとの記録が付く前のデータ）`
+      : `${badge.text}　回答済み ${mastery.answered}/${mastery.questions}問`;
+
+    scoreDisplay.textContent = '';
+    scoreDisplay.appendChild(wrap);
+    scoreDisplay.appendChild(label);
+
+    if (!mastery.legacy && mastery.due > 0) {
+      const due = document.createElement('p');
+      due.className = 'score-due';
+      due.textContent = `復習の時期が来た問題が ${mastery.due}問 あります。`;
+      scoreDisplay.appendChild(due);
+    }
   } else {
     scoreSection.style.display = 'none';
   }

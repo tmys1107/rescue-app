@@ -7,3 +7,6 @@ sources/**/元写真/
 # OS生成ファイル
 .DS_Store
 Thumbs.db
+
+# 移行スクリプト実行前のバックアップ（手元のみ）
+*.bak-*

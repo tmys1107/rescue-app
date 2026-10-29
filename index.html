@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>救助資機材学習アプリ</title>
+  <title>救助学習アプリ</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header>
-    <h1>救助資機材学習</h1>
+    <h1>救助学習</h1>
   </header>
 
   <nav class="tab-nav">
-    <button class="tab-btn active" data-tab="zukan">資器材一覧</button>
+    <button class="tab-btn active" data-tab="zukan">資器材</button>
+    <button class="tab-btn" data-tab="ops">操法</button>
     <button class="tab-btn" data-tab="quiz">問題集</button>
     <button class="tab-btn" data-tab="fav">お気に入り</button>
   </nav>
@@ -29,13 +30,40 @@
       </div>
     </section>
 
+    <!-- 操法・救助方法タブ -->
+    <section id="tab-ops" class="tab-content">
+      <div class="search-box">
+        <input type="text" id="ops-search-input" placeholder="操法名・手順で検索...">
+      </div>
+      <div class="category-filter" id="ops-category-filter"></div>
+      <div class="card-grid" id="ops-card-grid">
+        <p class="loading-msg">読み込み中…</p>
+      </div>
+    </section>
+
     <!-- 問題集タブ -->
     <section id="tab-quiz" class="tab-content">
       <div class="quiz-controls">
         <div class="quiz-category-select">
+          <label>種別</label>
+          <select id="quiz-type-select">
+            <option value="all">すべて</option>
+            <option value="資器材">資器材</option>
+            <option value="操法">操法</option>
+          </select>
+        </div>
+        <div class="quiz-category-select">
           <label>カテゴリ</label>
           <select id="quiz-category-select">
             <option value="all">すべて</option>
+          </select>
+        </div>
+        <div class="quiz-category-select">
+          <label>出題数</label>
+          <select id="quiz-count-select">
+            <option value="10" selected>10問</option>
+            <option value="20">20問</option>
+            <option value="0">すべて</option>
           </select>
         </div>
         <button id="struggle-btn" class="struggle-btn">苦手問題のみ</button>
@@ -47,7 +75,7 @@
     <!-- お気に入りタブ -->
     <section id="tab-fav" class="tab-content">
       <div class="card-grid" id="fav-grid"></div>
-      <p id="fav-empty" class="empty-msg hidden">お気に入りはまだありません。<br>資器材一覧の ☆ から登録できます。</p>
+      <p id="fav-empty" class="empty-msg hidden">お気に入りはまだありません。<br>資器材・操法の一覧にある ☆ から登録できます。</p>
     </section>
   </main>
 

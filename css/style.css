@@ -50,10 +50,13 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
 
 .tab-btn {
   flex: 1;
-  padding: 12px;
+  /* タブ4つを狭いスマホ幅に収めるため、左右の余白は詰めて折り返させない */
+  padding: 12px 4px;
+  min-height: 48px;
   border: none;
   background: none;
-  font-size: 1rem;
+  font-size: 0.9rem;
+  white-space: nowrap;
   cursor: pointer;
   color: var(--text-light);
   border-bottom: 3px solid transparent;
@@ -139,6 +142,10 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
   padding: 8px;
   display: block;
 }
+/* 操法カード：写真が無いので上端に帯を置き、一覧で見分けられるようにする */
+.card-noimage {
+  border-top: 3px solid var(--primary);
+}
 
 .card-thumb-placeholder {
   display: grid;
@@ -181,6 +188,9 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
 .card-progress.learning::before { background: #f2c94c; }
 .card-progress.done { color: #1e8449; font-weight: bold; }
 .card-progress.done::before { background: #27ae60; }
+/* 一度習得しても復習の時期が来たら知らせる */
+.card-progress.due { color: #b9431f; font-weight: bold; }
+.card-progress.due::before { background: #e8590c; }
 
 @media (hover: hover) {
   .card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
@@ -492,6 +502,17 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
   transition: width 0.4s;
 }
 .score-label { font-size: 0.9rem; color: var(--text-light); white-space: nowrap; }
+.score-bar.due { background: #e8590c; }
+.score-bar.learning { background: #f2c94c; }
+.score-bar.done { background: #27ae60; }
+.score-due { margin-top: 6px; font-size: 0.85rem; color: #b9431f; }
+
+/* 出題を絞ったときの注記 */
+.quiz-scope-note {
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+  color: var(--text-light);
+}
 
 /* ===== 問題集コントロール ===== */
 .quiz-controls {
@@ -508,6 +529,8 @@ header h1 { font-size: 1.1rem; font-weight: bold; }
   flex: 1;
   margin-bottom: 0;
 }
+/* 「カテゴリ」が2行に折れないようにする */
+.quiz-category-select label { white-space: nowrap; }
 .struggle-btn {
   padding: 8px 12px;
   border: 1px solid var(--primary);

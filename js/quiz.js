@@ -2,6 +2,8 @@ async function initQuiz() {
   const quizArea = document.getElementById('quiz-area');
   const resultEl = document.getElementById('quiz-result');
   const categorySelect = document.getElementById('quiz-category-select');
+  const typeSelect = document.getElementById('quiz-type-select');
+  const countSelect = document.getElementById('quiz-count-select');
   const struggleBtn = document.getElementById('struggle-btn');
   if (!quizArea) return;
 
@@ -12,7 +14,6 @@ async function initQuiz() {
   const urlItemName = urlParams.get('name');
 
   const data = await loadEquipment();
-  const categories = getCategories(data);
   let weakMode = false;
 
   if (urlItemId) {
@@ -32,17 +33,37 @@ async function initQuiz() {
     header.appendChild(titleSpan);
     quizArea.before(header);
   } else {
-    categories.forEach(cat => {
-      const opt = document.createElement('option');
-      opt.value = cat;
-      opt.textContent = cat;
-      categorySelect.appendChild(opt);
-    });
+    // 種別で絞ったうえで、その中にあるカテゴリだけを選択肢に出す
+    const fillCategories = () => {
+      const scoped = typeSelect && typeSelect.value !== 'all'
+        ? byType(data, typeSelect.value)
+        : data;
+      categorySelect.textContent = '';
+      const allOpt = document.createElement('option');
+      allOpt.value = 'all';
+      allOpt.textContent = 'すべて';
+      categorySelect.appendChild(allOpt);
+      getCategories(scoped).forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        categorySelect.appendChild(opt);
+      });
+    };
+    fillCategories();
 
     const urlCat = urlParams.get('category');
     if (urlCat) categorySelect.value = urlCat;
 
+    if (typeSelect) {
+      typeSelect.addEventListener('change', () => {
+        fillCategories();           // 種別を変えるとカテゴリは「すべて」に戻る
+        buildQuiz(data);
+      });
+    }
+
     categorySelect.addEventListener('change', () => buildQuiz(data));
+    if (countSelect) countSelect.addEventListener('change', () => buildQuiz(data));
 
     struggleBtn.addEventListener('click', () => {
       weakMode = !weakMode;
@@ -53,42 +74,77 @@ async function initQuiz() {
 
   buildQuiz(data);
 
+  // 1回の出題数。資器材個別モードはその資器材の全問を出す（上限なし）
+  function sessionLimit() {
+    if (urlItemId || !countSelect) return 0;
+    const n = parseInt(countSelect.value, 10);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  function showMessage(html) {
+    quizArea.textContent = '';
+    const p = document.createElement('p');
+    p.className = 'empty-msg';
+    p.innerHTML = html;        // 文言はこのファイル内の固定文字列のみ
+    quizArea.appendChild(p);
+    resultEl.classList.add('hidden');
+  }
+
   function buildQuiz(data) {
     let filtered;
     if (urlItemId) {
       filtered = data.filter(d => d.id === urlItemId);
     } else {
+      // 種別 → カテゴリの順に絞る
+      filtered = (typeSelect && typeSelect.value !== 'all')
+        ? byType(data, typeSelect.value)
+        : data;
       const cat = categorySelect.value;
-      filtered = cat === 'all' ? data : data.filter(d => d.category === cat);
+      if (cat !== 'all') filtered = filtered.filter(d => d.category === cat);
     }
 
-    // 苦手モード：正答率60%未満の資器材に絞る
-    if (weakMode) {
-      const weakIds = Storage.getWeakItemIds();
-      if (weakIds.length === 0) {
-        quizArea.innerHTML = '<p class="empty-msg">苦手問題はまだありません。<br>問題を解いてから確認してください。</p>';
-        resultEl.classList.add('hidden');
-        return;
-      }
-      filtered = filtered.filter(d => weakIds.includes(d.id));
-    }
-
-    const questions = [];
+    let questions = [];
     filtered.forEach(item => {
       (item.quiz || []).forEach((q, idx) => {
-        // qid 未設定の問題はitemIdから自動生成（後方互換）
-        const qid = q.qid || `${item.id}-q${idx + 1}`;
-        questions.push({ ...q, qid, itemId: item.id, itemName: item.name });
+        questions.push({ ...q, qid: qidOf(item, q, idx), itemId: item.id, itemName: item.name });
       });
     });
-    shuffle(questions);
 
-    quizArea.innerHTML = '';
-    resultEl.classList.add('hidden');
+    // 苦手モード：資器材ではなく「問題」単位で絞る。
+    // 資器材単位だと、7問中1問だけ落としていても平均85%で苦手に入らず、
+    // その1問が永久に出てこない。
+    if (weakMode) {
+      questions = questions.filter(q => isWeakQid(q.qid));
+      if (questions.length === 0) {
+        showMessage('苦手問題はまだありません。<br>問題を解いてから確認してください。');
+        return;
+      }
+    }
 
     if (questions.length === 0) {
-      quizArea.innerHTML = '<p class="empty-msg">この条件の問題はまだありません。</p>';
+      showMessage('この条件の問題はまだありません。');
       return;
+    }
+
+    // 復習期限が来たもの → 未回答 → それ以外 の順に並べ、頭から出題数ぶん取る
+    questions = sortForStudy(questions);
+    const limit = sessionLimit();
+    const totalAvailable = questions.length;
+    if (limit && questions.length > limit) questions = questions.slice(0, limit);
+
+    quizArea.textContent = '';
+    resultEl.classList.add('hidden');
+
+    // 絞り込んだときは母数と並べ方を明示する。
+    // showQuestion() が quizArea を毎回空にするので、外側に置く。
+    const oldNote = document.querySelector('.quiz-scope-note');
+    if (oldNote) oldNote.remove();
+    if (limit && totalAvailable > limit) {
+      const note = document.createElement('p');
+      note.className = 'quiz-scope-note';
+      note.textContent =
+        `対象 ${totalAvailable}問 から ${limit}問。復習期限が来た問題と未回答を先に出します。`;
+      quizArea.before(note);
     }
 
     // 1問ずつ出題
@@ -190,13 +246,6 @@ async function initQuiz() {
     `;
     resultEl.classList.remove('hidden');
     resultEl.scrollIntoView({ behavior: 'smooth' });
-  }
-}
-
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
 }
 
