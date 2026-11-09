@@ -3,15 +3,21 @@
 
    素材は sources/icon/（ChatGPTで作成）。デザインは変更しない。
 
-   ただし素材は「白地の上に角丸バッジ」が焼き込まれている。
-   iOS はホーム画面アイコンに自前の角丸マスクを掛けるため、そのまま使うと
-   マスクの内側に白が残り、白い枠が付いたように見える（実測17.1%）。
-   そこで iOS用（apple-touch-icon）と Android のマスカブル用だけ、
-   原本からバッジ部分を切り出して全面化する。絵そのものには手を加えない。
+   素材は「白地の上に角丸バッジ＋ドロップシャドウ」が焼き込まれている。
+   iOS はホーム画面アイコンに自前の角丸マスクを掛けるので、そのまま使うと
+   バッジの外側（白と影）がマスクの内側に残り、白い縁として見える。
 
-     元のまま            iOSマスク内の白 17.1%
-     バッジを切り出し     → 7.9%
-     外側の白を地色で埋め → 1.9%
+   対策：バッジの外側を地色で塗りつぶし、バッジの外接矩形で切り出して全面化する。
+   絵そのものには手を加えない。
+
+   実装の注意（一度踏んだ）：
+     PIL の ImageDraw.floodfill の thresh は「RGB3チャンネルの差の合計」。
+     白(255,255,255) と 影(199,200,201) の差は合計165ある。
+     thresh=60 では影に届かず、影のリングが残ったまま白い縁になった。
+     そのため floodfill はやめ、明るさのマスクを自分で作って塗る。
+
+     検証も「235以上を白とみなす」では影(199〜233)を数えられない。
+     min(R,G,B) > 120 を「地色でない明るい画素」として数える。
 
    実行： python tools/build_icons.py
 """
@@ -20,7 +26,8 @@ import os
 import shutil
 import sys
 
-from PIL import Image, ImageChops, ImageDraw
+import numpy as np
+from PIL import Image, ImageChops
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
@@ -34,66 +41,94 @@ COPY = ["favicon-16.png", "favicon-32.png", "icon-192.png", "icon-512.png"]
 # 全面化して作るもの（OSが自前でマスクを掛ける用途）
 FULLBLEED = [("apple-touch-icon.png", 180), ("icon-512-maskable.png", 512)]
 
+LIGHT = 90      # min(R,G,B) がこれを超えたら「背景か影」とみなす
+GROW = 5        # 塗る範囲をバッジ側へ広げる画素数（縁のアンチエイリアスを消す）
+
+
+def exterior_mask(arr):
+    """バッジの外側（白＋影）を True にしたマスクを返す。
+
+    バッジは角丸正方形で凸なので、各行・各列を両端から走査して
+    明るい画素が続く区間を外側とみなせば、穴を拾わずに正確に取れる。
+    """
+    light = arr.min(axis=2) > LIGHT
+    h, w = light.shape
+    ext = np.zeros_like(light)
+
+    for y in range(h):
+        row = light[y]
+        i = 0
+        while i < w and row[i]:
+            ext[y, i] = True; i += 1
+        i = w - 1
+        while i >= 0 and row[i]:
+            ext[y, i] = True; i -= 1
+
+    for x in range(w):
+        col = light[:, x]
+        i = 0
+        while i < h and col[i]:
+            ext[i, x] = True; i += 1
+        i = h - 1
+        while i >= 0 and col[i]:
+            ext[i, x] = True; i -= 1
+
+    # 縁のアンチエイリアス（中間色）も食べるよう、内側へ少し広げる
+    for _ in range(GROW):
+        g = ext.copy()
+        g[1:, :] |= ext[:-1, :]
+        g[:-1, :] |= ext[1:, :]
+        g[:, 1:] |= ext[:, :-1]
+        g[:, :-1] |= ext[:, 1:]
+        ext = g
+    return ext
+
 
 def badge_fullbleed(path):
-    """原本から白い余白を取り除き、外周をバッジの地色で埋めた正方形を返す"""
+    """白と影を地色で潰し、バッジの外接矩形で正方形に切り出す"""
     im = Image.open(path).convert("RGB")
+    arr = np.array(im)
 
-    # 白でない領域の外接矩形を取り、正方形に整えて切り出す
-    bg = Image.new("RGB", im.size, (255, 255, 255))
-    diff = ImageChops.difference(im, bg).convert("L").point(lambda v: 255 if v > 12 else 0)
-    x0, y0, x1, y1 = diff.getbbox()
+    # 地色はバッジ左端の内側から拾う
+    bb = ImageChops.difference(im, Image.new("RGB", im.size, (255, 255, 255)))
+    x0, y0, x1, y1 = bb.convert("L").point(lambda v: 255 if v > 12 else 0).getbbox()
+    navy = arr[(y0 + y1) // 2, x0 + int((x1 - x0) * 0.04)].copy()
+
+    arr[exterior_mask(arr)] = navy
+    im = Image.fromarray(arr)
+
     cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
     half = max(x1 - x0, y1 - y0) // 2
-    crop = im.crop((cx - half, cy - half, cx + half, cy + half))
-
-    # 角丸の外に残る白を、バッジの地色で塗りつぶす。
-    # 四隅から流し込むのでバッジの縁で止まり、内側の金属色は残る。
-    s = crop.size[0]
-    navy = crop.getpixel((int(s * 0.06), int(s * 0.5)))
-    for pt in [(0, 0), (s - 1, 0), (0, s - 1), (s - 1, s - 1)]:
-        ImageDraw.floodfill(crop, pt, navy, thresh=60)
-    return crop
+    return im.crop((cx - half, cy - half, cx + half, cy + half)), tuple(int(v) for v in navy)
 
 
-def white_ratio_under_ios_mask(im):
-    """iOSの角丸マスク（22.37%）を掛けたとき、内側に残る白の割合"""
-    s = im.size[0]
-    mask = Image.new("L", (s, s), 0)
-    ImageDraw.Draw(mask).rounded_rectangle([0, 0, s - 1, s - 1],
-                                           radius=int(s * 0.2237), fill=255)
-    white = tot = 0
-    step = max(1, s // 200)
-    for y in range(0, s, step):
-        for x in range(0, s, step):
-            if mask.getpixel((x, y)) == 0:
-                continue
-            tot += 1
-            p = im.getpixel((x, y))
-            if p[0] > 235 and p[1] > 235 and p[2] > 235:
-                white += 1
-    return 100.0 * white / tot
+def edge_report(im, px=4):
+    """外周px幅のリングに、地色でない明るい画素が何%あるか"""
+    a = np.array(im.convert("RGB")).min(axis=2)
+    ring = np.zeros(a.shape, bool)
+    ring[:px, :] = ring[-px:, :] = ring[:, :px] = ring[:, -px:] = True
+    return 100.0 * float((a[ring] > 120).sum()) / int(ring.sum())
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
 
     for name in COPY:
-        src = os.path.join(SRC, name)
-        shutil.copyfile(src, os.path.join(OUT, name))
-        im = Image.open(src)
+        shutil.copyfile(os.path.join(SRC, name), os.path.join(OUT, name))
+        im = Image.open(os.path.join(SRC, name))
         print("  複製  %-24s %dx%d" % (name, im.size[0], im.size[1]))
 
-    base = badge_fullbleed(os.path.join(SRC, "icon-original.png"))
+    base, navy = badge_fullbleed(os.path.join(SRC, "icon-original.png"))
+    print("\n  バッジ地色 RGB%s / 全面化後 %dx%d" % (navy, base.size[0], base.size[1]))
+
     for name, size in FULLBLEED:
         out = base.resize((size, size), Image.LANCZOS)
         out.save(os.path.join(OUT, name), optimize=True)
-        print("  全面化 %-24s %dx%d  iOSマスク内の白 %.1f%%"
-              % (name, size, size, white_ratio_under_ios_mask(out)))
+        print("  全面化 %-24s %dx%d  外周の明るい画素 %.2f%%"
+              % (name, size, size, edge_report(out)))
 
-    before = white_ratio_under_ios_mask(
-        Image.open(os.path.join(SRC, "apple-touch-icon.png")).convert("RGB"))
-    print("\n  （素材そのままだと %.1f%% が白だった）" % before)
+    before = Image.open(os.path.join(SRC, "apple-touch-icon.png"))
+    print("\n  （素材そのままだと外周の明るい画素 %.2f%%）" % edge_report(before))
 
 
 if __name__ == "__main__":
